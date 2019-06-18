@@ -28,7 +28,6 @@ def convertLinks(links):
         for link in links:
                 mdFile = open(projectName+'\\'+link+'-converted.md','w')
                 aTagRegex = "(<a )([a-z-=\" ]+ )(href=\")([a-z-.-_]+)(\">)([a-z-A-Z-0-9 ]+)(</a>)"
-                #aTagFixRegex = '(<ahref=\")([a-z-.-_]+)(\">)([a-z-A-Z-0-9 ]+)(</a>)'
                 aTagFixRegex = '(<a.*href=\")([a-z-.-_]+)(\">)([a-z-A-Z-0-9 ]+)(</a>)'
                 linkRegex = '\[(.+)\]\(([a-z._0-9\/:]+)\)'
                 file = open(projectName+'\\'+link+'.md')
