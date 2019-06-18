@@ -9,22 +9,23 @@ projectName = ''
 
 def startProgram():
    gatherInfoFromUser()
-# Create project folder
+   # Create project folder
    createProjectFolder(projectName)
-
-# Create files
+   # Fetch links from main page
    links = fetchAllLinksFromBasePage(projectName, baseUrl)
+   # Download fethed pages
    downloadHtmlFiles(links)
+   # Crawl the links
    crawlTheLinks(links)
-   fixNestedAtag(links)
+   # Convert all links 
+   convertLinks(links)
 
 # Fetch websites 
 
 pass
 
-def fixNestedAtag(links):
+def convertLinks(links):
         for link in links:
-                print('Current link  :   ' + link )
                 mdFile = open(projectName+'\\'+link+'-converted.md','w')
                 aTagRegex = "(<a )([a-z-=\" ]+ )(href=\")([a-z-.-_]+)(\">)([a-z-A-Z-0-9 ]+)(</a>)"
                 #aTagFixRegex = '(<ahref=\")([a-z-.-_]+)(\">)([a-z-A-Z-0-9 ]+)(</a>)'
@@ -32,8 +33,8 @@ def fixNestedAtag(links):
                 linkRegex = '\[(.+)\]\(([a-z._0-9\/:]+)\)'
                 file = open(projectName+'\\'+link+'.md')
                 for line in file:
+                        
                         if(re.search(linkRegex, line)):
-                                print('FOUND' + line)
                                 if(re.search(linkRegex,line).group(2)[0:4] != 'http'):
                                         mdFile.write('['+re.search(linkRegex, line).group(1)+']('+ baseUrl+ re.search(linkRegex,line).group(2)+')\n')
 
@@ -44,7 +45,6 @@ def fixNestedAtag(links):
                                         lineToWrite = '['+re.search(linkRegex, lineToWrite).group(1)+']('+ baseUrl+ re.search(linkRegex,lineToWrite).group(2)+')\n'
 
                                 mdFile.write(lineToWrite)
-                                 #mdFile.write('['+re.search(aTagRegex, line).group(6)+']('+ re.search(aTagRegex,line).group(4)+')\n')
                         elif re.search(aTagFixRegex, line):
                                 mdFile.write('['+re.search(aTagFixRegex, line).group(4)+']('+ re.search(aTagFixRegex,line).group(2)+')\n')
                         else:
@@ -52,7 +52,11 @@ def fixNestedAtag(links):
                         
                 file.close()
 
-                os.remove(projectName+'\\'+link+'.md')                     
+                os.remove(projectName+'\\'+link+'.md')
+                os.remove(projectName+'\\'+link+'.txt')
+                
+        print('+----------------------------------------------------------+')
+        print('This website has now been crawled and converted to Markdown.\nYou can access the files in the projectfolder: '+ projectName)                     
         pass
 
 
@@ -64,18 +68,21 @@ def gatherInfoFromUser():
         global projectName
         projectName = input('Please provide a name for  your project: ')
         print('You have chosen the name: \"'+ projectName + '\" for your project')
-        print('Would you like to use the test url or provide your own?')
+        print('Would you like to use the test url?')
         answer = input('(y/n): ')
+        print('\nStarting the crawler')
+        print('+----------------------------------------------------------+')
         if answer == 'n':
-                global baseUrl
-                baseUrl = input('Please input url of website: ')
+                print('\nFor now you can only use the provided test url\nPlease try to run it again')
+                print('Shutting down crawler..')
+                sys.exit(0)
         
     
 
 def fetchAllLinksFromBasePage(project, baseUrl):
         listOfLinks = set()
 
-        print('Fetching data')
+        print('Fetching links from main page')
         basePage = urlopen(baseUrl)
         html = basePage.read().decode('utf-8')
         createBasePageTxt(project, html)
@@ -92,7 +99,6 @@ def fetchAllLinksFromBasePage(project, baseUrl):
                                 link = tempLine[:quoteIndex]
                                 if (link[0]  != '#'):
                                         listOfLinks.add(link)
-        #print(listOfLinks)
         return listOfLinks
 
 
@@ -109,17 +115,15 @@ def createProjectFolder(projectDirectory):
 
 
 def crawlTheLinks(links):
+        print('I will now begin to crawl the links')
         for link in links:
-                print('Current link  :   ' + link )
+                print('Currently crawling: ' + link )
                 mdFile = open(projectName+'\\'+link+'.md','w')
                 aTagRegex = "(<a )([a-z-=\" ]+ )(href=\")([a-z-.-_]+)(\">)([a-z-A-Z-0-9 ]+)(</a>)"
                 #h1TagRegexClass = "(?s)(<h1.+>)(.+?)(</h1>)"
                 h1TagRegex = "(?s)(<h1.*?>)(.+?)(</h1>)"
                 h2TagRegex = "(?s)(<h2.*?>)(.+?)(</h2>)"
                 h3TagRegex = "(?s)(<h3.*?>)(.+?)(</h3>)"
-                pTagRegex = "(?s)(<p.*?>)(.+?)(</p>)"
-                liTagRegex = "(<li[a-z> =\"]+)([a-z-A-Z ]+)(</li>)"   
-                aTagFixRegex = '(<a.*href=\")([a-z-.-_]+)(\">)([a-z-A-Z-0-9 ]+)(</a>)'
     
                 file = open(projectName+'\\'+link+'.txt')
                 for line in file:
@@ -144,12 +148,12 @@ def crawlTheLinks(links):
                                         mdFile.write(templine+"\n")
 
                                         pass
+                        # Li tags                
                         if('<li' in strippedLine and '<link' not in strippedLine):
                                 templine = ''
                                 if('<li' in strippedLine and '</li>' in strippedLine):
                                         endofStartTagIndex = strippedLine.find('>')
                                         mdFile.write('- '+strippedLine[endofStartTagIndex+1:-5]+"\n")
-                                       # print(strippedLine)
                                 else:
                                         endofStartTagIndex = strippedLine.find('>')
                                         templine += '- '+strippedLine[endofStartTagIndex+1:]
@@ -161,44 +165,30 @@ def crawlTheLinks(links):
                                                         templine+= line2.strip()
                                         mdFile.write(templine+"\n")
 
-                        
+                        # H1 tags
                         if(re.search(h1TagRegex, strippedLine)):
                                 mdFile.write("# "+re.search(h1TagRegex,strippedLine).group(2)+"\n")
+                        # H2 tags
                         if(re.search(h2TagRegex, strippedLine)):
                                 mdFile.write('## '+ re.search(h2TagRegex, strippedLine).group(2)+"\n")
+                        # H3 tags
                         if(re.search(h3TagRegex, strippedLine)):
                                 mdFile.write('### '+ re.search(h3TagRegex, strippedLine).group(2)+"\n")
+        print('Crawling finished')
 
+        
 
-
-                
-                                
-                                
-
-
-                                
-               # break                      
-                        
-                
-                #print('\n\n\n')
-
-
-               # print('REGES TESTING: ')
-               # file.close()
-               # file = open(projectName+'\\'+link+'.txt')
-               # aTagRegex = "(<a )([a-z-=\"]+ )(href=\")([a-z-.-_]+)(\">)"
-               # aTagRegex = "(<a )([a-z-=\"]+ )(href=\")([a-z-.-_]+)(\">)([a-z-A-Z-0-9 ]+)(</a>)"
-               # for l in file: 
-               #         if (re.search(aTagRegex, l)):
-               #                 print(re.search(aTagRegex, l).group(4))
-        pass
 
 
 def downloadHtmlFiles(links):
         for link in links:
+                print('Currently fetching: ' + link)
                 page = open(projectName + '\\'+link+'.txt' ,'w')
                 page.write(urlopen(baseUrl+link).read().decode('utf-8'))
-                page.close   
+                page.close
+        print('All links have now been fetched')
+        print('+----------------------------------------------------------+')
+
 
 if __name__ == "__main__":
     startProgram()
